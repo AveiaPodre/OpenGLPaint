@@ -25,21 +25,26 @@ struct Vertex{
 
 struct Form{
 	int type;
-	forward_list<Vertex> vertexList;
+	std::forward_list<Vertex> vertexList;
 };
 
-forward_list<Form> formList;
+std::forward_list<Form> formList;
 
 enum formType{LIN = 1, TRI = 2, RET = 3, POL = 4, CIR = 5};
 int mode = LIN;
 bool click1 = false;
 bool click2 = false;
+bool espaco = false;
+int i_pol = 0;
 
 int x_m, y_m;
-int x_1, y_1, x_2, y_2;
+int x_p[99], y_p[99];
 
 int x_tri[3];
 int y_tri[3];
+
+int x_pol[99];
+int y_pol[99];
 
 int width = 1600;
 int height = 900;
@@ -165,6 +170,9 @@ void menu_popup(int form){
 void keyboard(unsigned char key, int x, int y){
     switch (key){
         case ESC: exit(EXIT_SUCCESS); break;
+        case 32: // Código ASCII para a tecla de espaço
+            espaco = !espaco; // Alterna a variável booleana
+            break;
     }
 }
 
@@ -175,15 +183,15 @@ void mouse(int button, int state, int x, int y){
                 case LIN:
                     if(state == GLUT_DOWN){
                         if(click1){
-                            x_2 = x;
-                            y_2 = height - y - 1;
-                            pushLine(x_1, y_1, x_2, y_2);
+                            x_p[1] = x;
+                            y_p[1] = height - y - 1;
+                            pushLine(x_p[0], y_p[0], x_p[1], y_p[1]);
                             click1 = false;
                             glutPostRedisplay();
                         }else{
                             click1 = true;
-                            x_1 = x;
-                            y_1 = height - y - 1;
+                            x_p[0] = x;
+                            y_p[0] = height - y - 1;
                         }
                     }
                 	break;
@@ -191,10 +199,10 @@ void mouse(int button, int state, int x, int y){
                 case TRI:
                 	if(state == GLUT_DOWN){
                         if(click1){
-                        	x_2 = x;
-                        	y_2 = height - y - 1;
-                            x_tri[1] = x_2;
-                            y_tri[1] = y_2;
+                        	x_p[1] = x;
+                        	y_p[1] = height - y - 1;
+                            x_tri[1] = x_p[1];
+                            y_tri[1] = y_p[1];
                             click1 = false;
                             click2 = true;
                             glutPostRedisplay();
@@ -208,10 +216,10 @@ void mouse(int button, int state, int x, int y){
 						}
 						else{
                             click1 = true;
-                            x_1 = x;
-                            y_1 = height - y - 1;
-                            x_tri[0] = x_1;
-                            y_tri[0] = y_1;
+                            x_p[0] = x;
+                            y_p[0] = height - y - 1;
+                            x_tri[0] = x_p[0];
+                            y_tri[0] = y_p[0];
                         }
                     }
                 	break;
@@ -219,32 +227,64 @@ void mouse(int button, int state, int x, int y){
                 case RET:
                     if(state == GLUT_DOWN){
                         if(click1){
-                            x_2 = x;
-                            y_2 = height - y - 1;
-                            pushRect(x_1, y_1, x_2, y_2);
+                            x_p[1] = x;
+                            y_p[1] = height - y - 1;
+                            pushRect(x_p[0], y_p[0], x_p[1], y_p[1]);
                             click1 = false;
                             glutPostRedisplay();
                         }else{
                             click1 = true;
-                            x_1 = x;
-                            y_1 = height - y - 1;
+                            x_p[0] = x;
+                            y_p[0] = height - y - 1;
                         }
                     }
+                	break;
+                
+                case POL:
+                	if (state == GLUT_DOWN){
+						if(click1){
+							if(espaco){
+								x_p[i_pol] = x;
+								y_p[i_pol] = height - y - 1;
+								pushVertex(x_p[i_pol], y_p[i_pol]);
+								espaco = false;
+								click1 = false;
+								glutPostRedisplay();
+								i_pol = 0;
+							}
+							else{
+								x_p[i_pol] = x;
+								y_p[i_pol] = height - y - 1;
+								pushVertex(x_p[i_pol], y_p[i_pol]);
+								glutPostRedisplay();
+								i_pol++;
+							}
+						}
+						else{
+							pushForm(POL);
+							x_p[i_pol] = x;
+							y_p[i_pol] = height - y - 1;
+							pushVertex(x_p[i_pol], y_p[i_pol]);
+							click1 = true;
+							i_pol++;
+							glutPostRedisplay();
+						}
+					}
                 	break;
                 
                 case CIR:
                 	if(state == GLUT_DOWN){
 						if(click1){
-							x_2 = x;
-							y_2 = height - y - 1;
-							pushCircle(x_1, y_1, x_2, y_2);
+							x_p[1] = x;
+							y_p[1] = height - y - 1;
+							pushCircle(x_p[0], y_p[0], x_p[1], y_p[1]);
 							click1 = false;
 							glutPostRedisplay();
 						}
 						else{
 							click1 = true;
-							x_1 = x;
-							y_1 = height - y -1;
+							x_p[0] = x;
+							y_p[0] = height - y -1;
 						}
 					}
 					break;
@@ -269,28 +309,38 @@ void drawForms(){
     if(click1){
     	switch (mode){
 			case LIN:
-				bresenham(x_1, y_1, x_m, y_m);
+				bresenham(x_p[0], y_p[0], x_m, y_m);
 				break;
 			case TRI:
-				bresenham(x_1, y_1, x_m, y_m);
+				bresenham(x_p[0], y_p[0], x_m, y_m);
 				break;
 			case RET:
-        		bresenham(x_1, y_1, x_m, y_1);
-                bresenham(x_m, y_1, x_m, y_m);
-                bresenham(x_m, y_m, x_1, y_m);
-                bresenham(x_1, y_m, x_1, y_1);
+        		bresenham(x_p[0], y_p[0], x_m, y_p[0]);
+                bresenham(x_m, y_p[0], x_m, y_m);
+                bresenham(x_m, y_m, x_p[0], y_m);
+                bresenham(x_p[0], y_m, x_p[0], y_p[0]);
                 break;
+//			case POL:
+//    			size_t size_pol = 0;
+//    			for(const auto& vertex : formList.front().vertexList) {
+//        			size_pol++;
+//    			}
+//            	for(int i = 0; i < size_pol - 1; i++){
+//					bresenham(x_p[i], y_p[i], x_p[i + 1], y_p[i + 1]);
+//				}
+//				bresenham(x_p[size_pol - 1], y_p[size_pol - 1], x_m, y_m);
+  //          	break;
             case CIR:
-            	bresenhamCircle(x_1, y_1, x_m, y_m);
+            	bresenhamCircle(x_p[0], y_p[0], x_m, y_m);
             	break;
 		}
 	}
 	else if(click2){
 		switch(mode){
 			case TRI:
-				bresenham(x_1, y_1, x_2, y_2);
-				bresenham(x_2, y_2, x_m, y_m);
-				bresenham(x_m, y_m, x_1, y_1);
+				bresenham(x_p[0], y_p[0], x_p[1], y_p[1]);
+				bresenham(x_p[1], y_p[1], x_m, y_m);
+				bresenham(x_m, y_m, x_p[0], y_p[0]);
 				break;
 		}
 	}
@@ -330,6 +380,20 @@ void drawForms(){
                 bresenham(x[1], y[0], x[1], y[1]);
                 bresenham(x[1], y[1], x[0], y[1]);
                 bresenham(x[0], y[1], x[0], y[0]);
+                break;
+            
+            case POL:
+                //Percorre a lista de vertices da forma retangulo para desenhar
+                for(forward_list<Vertex>::iterator v = f->vertexList.begin(); v != f->vertexList.end(); v++, i++){
+                    x[i] = v->x;
+                    y[i] = v->y;
+                }
+                size_t size_pol;
+				size_pol = sizeof(x) / sizeof(x[0]);
+				for(int i = 0; i < size_pol - 1; i++){
+					bresenham(x[i], y[i], x[i + 1], y[i + 1]);
+				}
+				bresenham(x[size_pol - 1], y[size_pol], x[0], y[0]);
                 break;
             
             case CIR:
