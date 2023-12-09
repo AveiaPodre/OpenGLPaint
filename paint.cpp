@@ -41,8 +41,8 @@ int x_1, y_1, x_2, y_2;
 int x_tri[3];
 int y_tri[3];
 
-int width = 800;
-int height = 600;
+int width = 1600;
+int height = 900;
 
 void pushForm(int type){
     Form f;
@@ -432,7 +432,7 @@ void bresenham(double x1, double y1, double x2, double y2){
 	incNE = 2*deltaY - 2*deltaX;
 	
 	drawPixel(int(x1), int(y1));
-	for(int x = int(x1)+1; x< int(x2); x++){
+	for(int x = int(x1)+1; x<= int(x2); x++){
 		if (d <= 0){
 			d = d + incE;
 		}
