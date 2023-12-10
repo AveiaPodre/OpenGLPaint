@@ -108,7 +108,6 @@ void shear(float shx, float shy);
 void reflection(bool horizontal, bool vertical);
 void rotation(float angle);
 
-
 int main(int argc, char** argv){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
@@ -206,7 +205,7 @@ void keyboard(unsigned char key, int x, int y){
 				click1 = false;
 				glutPostRedisplay();
 			}
-            break;
+            break;        	
     }
 }
 
@@ -710,7 +709,6 @@ void reflection(bool horizontal, bool vertical) {
             }
         }
     }
-
     glutPostRedisplay();
 }
 
@@ -756,6 +754,5 @@ void rotation(float angle) {
             }
         }
     }
-
     glutPostRedisplay();
 }
