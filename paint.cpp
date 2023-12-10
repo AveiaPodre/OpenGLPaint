@@ -31,6 +31,8 @@ struct Form{
 std::forward_list<Form> formList;
 
 enum formType{LIN = 1, TRI = 2, RET = 3, POL = 4, CIR = 5};
+enum tipo_transf{TRA = 1, ESL = 2, CIS = 3, REF = 4, ROT = 5};
+
 int mode = LIN;
 bool click1 = false;
 bool click2 = false;
@@ -43,8 +45,8 @@ int x_p[99], y_p[99];
 int x_tri[3];
 int y_tri[3];
 
-int x_origem;
-int y_origem;
+int x_origin;
+int y_origin;
 
 int width = 1600;
 int height = 900;
@@ -91,6 +93,7 @@ void init(void);
 void reshape(int w, int h);
 void display(void);
 void menu_popup(int value);
+void submenu_transf(int value);
 void keyboard(unsigned char key, int x, int y);
 void mouse(int button, int state, int x, int y);
 void mousePassiveMotion(int x, int y);
@@ -99,6 +102,11 @@ void drawForms();
 void Imediato(double x1, double y1, double x2, double y2);
 void bresenham(double x1,double y1,double x2,double y2);
 void bresenhamCircle(double x1, double y1, double x2, double y2);
+void translation(int dx, int dy);
+void scaling(float sx, float sy);
+void shear(float shx, float shy);
+void reflection(bool horizontal, bool vertical);
+void rotation(float angle);
 
 
 int main(int argc, char** argv){
@@ -116,12 +124,20 @@ int main(int argc, char** argv){
     glutMouseFunc(mouse);
     glutPassiveMotionFunc(mousePassiveMotion);
     
+	int submenuTransf = glutCreateMenu(submenu_transf);
+    glutAddMenuEntry("Translacao", TRA);
+    glutAddMenuEntry("Escala", ESL);
+    glutAddMenuEntry("Cisalhamento", CIS);
+    glutAddMenuEntry("Reflexao", REF);
+    glutAddMenuEntry("Rotacao", ROT);
+    
     glutCreateMenu(menu_popup);
     glutAddMenuEntry("Linha", LIN);
     glutAddMenuEntry("Triangulo", TRI);
     glutAddMenuEntry("Retangulo", RET);
 	glutAddMenuEntry("Poligono", POL);
 	glutAddMenuEntry("Circulo", CIR);
+	glutAddSubMenu("Transformações", submenuTransf);
     glutAddMenuEntry("Sair", 0);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 	
@@ -154,7 +170,7 @@ void reshape(int w, int h){
 void display(void){
     glClear(GL_COLOR_BUFFER_BIT); //Limpa o buffer de cores e reinicia a matriz
     glColor3f (0.0, 0.0, 0.0); // Seleciona a cor default como preto
-    drawForms(); // Desenha as formas geometricas da lista
+    drawForms(); // Desenha as formList geometricas da lista
     //Desenha texto com as coordenadas da posicao do mouse
     draw_text_stroke(0, 0, "(" + to_string(x_m) + "," + to_string(y_m) + ")", 0.2);
     glutSwapBuffers(); // manda o OpenGl renderizar as primitivas
@@ -165,6 +181,18 @@ void menu_popup(int form){
 		exit(EXIT_SUCCESS);
 	}
 	mode = form;
+}
+
+void submenu_transf(int value){
+	if (value == 0) exit(EXIT_SUCCESS);
+	switch (value){
+		case 1: translation(20, 20); break;
+		case 2: scaling(0.5, 0.5); break;
+		case 3: shear(0.7, 0); break;
+		case 4: reflection(false, true); break;
+		case 5: rotation(45); break;
+	}
+	mode = value;
 }
 
 void keyboard(unsigned char key, int x, int y){
@@ -260,8 +288,8 @@ void mouse(int button, int state, int x, int y){
 							click1 = true;
 							x_p[0] = x_p[1] = x;
 							y_p[0] = y_p[1] = height - y -1;
-							x_origem = x_p[0];
-							y_origem = y_p[0];
+							x_origin = x_p[0];
+							y_origin = y_p[0];
 							poligon = true;
 							pushForm(POL);
 							pushVertex(x_p[0], y_p[0]);
@@ -302,7 +330,7 @@ void drawPixel(int x, int y){
 }
 
 void drawForms(){
-    //Apos o primeiro clique, desenha a reta com a posicao atual do mouse
+    //Apos o primeiro clique, desenha a forma com a posicao atual do mouse
     if(click1){
     	switch (mode){
 			case LIN:
@@ -340,7 +368,7 @@ void drawForms(){
 		}
 	}
     
-    //Percorre a lista de formas geometricas para desenhar
+    //Percorre a lista de formList geometricas para desenhar
     for(forward_list<Form>::iterator f = formList.begin(); f != formList.end(); f++){
     	bool last = f == formList.begin();
     	int i = 0, x[3], y[3];
@@ -356,10 +384,12 @@ void drawForms(){
   				break;
   			
 			case TRI:
+				//percorre a lista de vertices da forma triangulo para desenhar
    				for(forward_list<Vertex>::iterator v = f->vertexList.begin(); v != f->vertexList.end(); v++, i++){
 					x[i] = v->x;
    					y[i] = v->y;
 				}
+				//desenha o triangulo apos tres cliques
   				bresenham(x[0], y[0], x[1], y[1]);
         		bresenham(x[1], y[1], x[2], y[2]);
         		bresenham(x[2], y[2], x[0], y[0]);
@@ -371,7 +401,7 @@ void drawForms(){
                     x[i] = v->x;
                     y[i] = v->y;
                 }
-				//Desenha o segmento de reta apos dois cliques
+				//Desenha o retangulo apos dois cliques
                 bresenham(x[0], y[0], x[1], y[0]);
                 bresenham(x[1], y[0], x[1], y[1]);
                 bresenham(x[1], y[1], x[0], y[1]);
@@ -379,12 +409,12 @@ void drawForms(){
                 break;
             
             case CIR:
-                //Percorre a lista de vertices da forma retangulo para desenhar
+                //Percorre a lista de vertices da forma circulo para desenhar
                 for(forward_list<Vertex>::iterator v = f->vertexList.begin(); v != f->vertexList.end(); v++, i++){
                     x[i] = v->x;
                     y[i] = v->y;
                 }
-				//Desenha o segmento de reta apos dois cliques
+				//Desenha o circulo apos dois cliques
 				bresenhamCircle(x[0], y[0], x[1], y[1]);
                 break;
 
@@ -567,4 +597,165 @@ void bresenhamCircle(double x1, double y1, double x2, double y2){
 			y = y - 1;
 		}
 	}
+}
+
+void translation(int dx, int dy) {
+    for (forward_list<Form>::iterator it_form = formList.begin(); it_form != formList.end(); ++it_form) {
+        for (forward_list<Vertex>::iterator it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+            it_vertex->x += dx;
+            it_vertex->y += dy;
+        }
+    }
+    glutPostRedisplay();
+}
+
+void scaling(float sx, float sy) {
+    for (auto it_form = formList.begin(); it_form != formList.end(); ++it_form) {
+        // Encontrar o centro do objeto
+        float center_x = 0.0;
+        float center_y = 0.0;
+
+        // Contar o número de vértices
+        int numVertexes = 0;
+
+        for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+            center_x += it_vertex->x;
+            center_y += it_vertex->y;
+            numVertexes++;
+        }
+
+        if (numVertexes > 0) {
+            center_x /= numVertexes;
+            center_y /= numVertexes;
+
+            // Escala em relação ao centro do objeto
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x = static_cast<int>((it_vertex->x - center_x) * sx + center_x);
+                it_vertex->y = static_cast<int>((it_vertex->y - center_y) * sy + center_y);
+            }
+        }
+    }
+    glutPostRedisplay();
+}
+
+void shear(float shx, float shy) {
+    for (auto it_form = formList.begin(); it_form != formList.end(); ++it_form) {
+        // Encontrar o centro do objeto
+        float center_x = 0.0;
+        float center_y = 0.0;
+
+        // Contar o número de vértices
+        int numVertexes = 0;
+
+        for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+            center_x += it_vertex->x;
+            center_y += it_vertex->y;
+            numVertexes++;
+        }
+
+        if (numVertexes > 0) {
+            center_x /= numVertexes;
+            center_y /= numVertexes;
+
+            // Aplicar cisalhamento em relação ao centro do objeto
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                int x = it_vertex->x + static_cast<int>(shx * (it_vertex->y - center_y));
+                int y = it_vertex->y + static_cast<int>(shy * (it_vertex->x - center_x));
+                it_vertex->x = x;
+                it_vertex->y = y;
+            }
+        }
+    }
+    glutPostRedisplay();
+}
+
+void reflection(bool horizontal, bool vertical) {
+    int h = (horizontal) ? -1 : 1;
+    int v = (vertical) ? -1 : 1;
+
+    for (auto it_form = formList.begin(); it_form != formList.end(); ++it_form) {
+        // Encontrar o centro do objeto
+        float center_x = 0.0;
+        float center_y = 0.0;
+
+        // Contar o número de vértices
+        int numVertexes = 0;
+
+        for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+            center_x += it_vertex->x;
+            center_y += it_vertex->y;
+            numVertexes++;
+        }
+
+        if (numVertexes > 0) {
+            center_x /= numVertexes;
+            center_y /= numVertexes;
+
+            // Transladar para a origem
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x -= center_x;
+                it_vertex->y -= center_y;
+            }
+
+            // Aplicar a reflexão
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x *= h;
+                it_vertex->y *= v;
+            }
+
+            // Transladar de volta para a posição original
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x += center_x;
+                it_vertex->y += center_y;
+            }
+        }
+    }
+
+    glutPostRedisplay();
+}
+
+void rotation(float angle) {
+    float radians = angle * 3.14159265 / 180.0;
+
+    for (auto it_form = formList.begin(); it_form != formList.end(); ++it_form) {
+        // Encontrar o centro do objeto
+        float centro_x = 0.0;
+        float centro_y = 0.0;
+
+        // Contar o número de vértices
+        int numVertexes = 0;
+
+        for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+            centro_x += it_vertex->x;
+            centro_y += it_vertex->y;
+            numVertexes++;
+        }
+
+        if (numVertexes > 0) {
+            centro_x /= numVertexes;
+            centro_y /= numVertexes;
+
+            // Transladar para a origem
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x -= centro_x;
+                it_vertex->y -= centro_y;
+            }
+
+            // Rotacionar
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                int x = static_cast<int>(it_vertex->x * cos(radians) - it_vertex->y * sin(radians));
+                int y = static_cast<int>(it_vertex->x * sin(radians) + it_vertex->y * cos(radians));
+                it_vertex->x = x;
+                it_vertex->y = y;
+            }
+
+            // Transladar de volta para a posição original
+            for (auto it_vertex = it_form->vertexList.begin(); it_vertex != it_form->vertexList.end(); ++it_vertex) {
+                it_vertex->x += centro_x;
+                it_vertex->y += centro_y;
+            }
+        }
+    }
+
+    glutPostRedisplay();
 }
